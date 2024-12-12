@@ -194,7 +194,7 @@ def get_config_backend(
             'bin/blockscout eval "Elixir.Explorer.ReleaseTasks.create_and_migrate()" && bin/blockscout start',
         ],
         env_vars={
-            "CHAIN_ID":"3151908"
+            "CHAIN_ID":"3151908",
             "ETHEREUM_JSONRPC_VARIANT": "erigon"
             if el_client_name == "erigon" or el_client_name == "reth"
             else el_client_name,
