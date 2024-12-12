@@ -71,19 +71,6 @@ def launch_blockscout(
     )
     el_client_name = el_context.client_name
 
-    config_verif = get_config_verif(
-        global_node_selectors,
-        port_publisher,
-        additional_service_index,
-        docker_cache_params,
-        blockscout_params,
-    )
-    verif_service_name = "{}-verif".format(SERVICE_NAME_BLOCKSCOUT)
-    verif_service = plan.add_service(verif_service_name, config_verif)
-    verif_url = "http://{}:{}/".format(
-        verif_service.hostname, verif_service.ports["http"].number
-    )
-
     config_backend = get_config_backend(
         postgres_output,
         el_client_rpc_url,
@@ -97,6 +84,20 @@ def launch_blockscout(
     )
     blockscout_service = plan.add_service(SERVICE_NAME_BLOCKSCOUT, config_backend)
     plan.print(blockscout_service)
+
+    config_verif = get_config_verif(
+        global_node_selectors,
+        port_publisher,
+        additional_service_index,
+        docker_cache_params,
+        blockscout_params,
+        blockscout_service
+    )
+    verif_service_name = "{}-verif".format(SERVICE_NAME_BLOCKSCOUT)
+    verif_service = plan.add_service(verif_service_name, config_verif)
+    verif_url = "http://{}:{}/".format(
+        verif_service.hostname, verif_service.ports["http"].number
+    )
 
     blockscout_url = "http://{}:{}".format(
         blockscout_service.hostname, blockscout_service.ports["http"].number
@@ -121,6 +122,7 @@ def get_config_verif(
     additional_service_index,
     docker_cache_params,
     blockscout_params,
+    blockscout_service
 ):
     public_ports = shared_utils.get_additional_service_standard_public_port(
         port_publisher,
@@ -137,6 +139,9 @@ def get_config_verif(
         ports=VERIF_USED_PORTS,
         public_ports=public_ports,
         env_vars={
+            "STATS__BLOCKSCOUT_API_URL": blockscout_service.ip_address
+            + ":"
+            + str(blockscout_service.ports["http"].number),
             "SMART_CONTRACT_VERIFIER__SERVER__HTTP__ADDR": "0.0.0.0:{}".format(
                 HTTP_PORT_NUMBER_VERIF
             )
@@ -189,6 +194,7 @@ def get_config_backend(
             'bin/blockscout eval "Elixir.Explorer.ReleaseTasks.create_and_migrate()" && bin/blockscout start',
         ],
         env_vars={
+            "CHAIN_ID":"3151908"
             "ETHEREUM_JSONRPC_VARIANT": "erigon"
             if el_client_name == "erigon" or el_client_name == "reth"
             else el_client_name,
